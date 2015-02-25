@@ -354,12 +354,12 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
     }
 
     /**
-     * Obtains a media/data file
+     * Obtains a media file
      * JQuery ajax doesn't support blob responses, so we're going native here.
      *
      * @return {Promise} [description]
      */
-    function getFile( url ) {
+    function getMediaFile( url ) {
         var deferred = Q.defer(),
             xhr = new XMLHttpRequest();
 
@@ -376,6 +376,26 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
         xhr.open( 'GET', url );
         xhr.responseType = 'blob';
         xhr.send();
+
+        return deferred.promise;
+    }
+
+    /**
+     * Obtains a data/text file
+     *
+     * @return {Promise} [description]
+     */
+    function getDataFile( url ) {
+        var deferred = Q.defer();
+
+        $.get( url )
+            .done( function( data ) {
+                deferred.resolve( data );
+            } )
+            .fail( function( jqXHR, textStatus, errorMsg ) {
+                var error = jqXHR.responseJSON || new Error( errorMsg );
+                deferred.reject( error );
+            } );
 
         return deferred.promise;
     }
@@ -463,7 +483,8 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
         getOnlineStatus: getOnlineStatus,
         getFormParts: getFormParts,
         getFormPartsHash: getFormPartsHash,
-        getFile: getFile,
+        getMediaFile: getMediaFile,
+        getDataFile: getDataFile,
         getExistingInstance: getExistingInstance,
         getManifestVersion: getManifestVersion
     };

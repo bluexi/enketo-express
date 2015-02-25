@@ -23,17 +23,16 @@ define( [ 'gui', 'connection', 'settings', 'enketo-js/Form', 'enketo-js/FormMode
         "use strict";
         var form, $formprogress, formSelector, defaultModelStr;
 
-        function init( selector, modelStr, instanceStrToEdit, options ) {
+        function init( selector, modelStr, instanceStrToEdit, externalData ) {
             var loadErrors, advice;
 
             formSelector = selector;
             defaultModelStr = modelStr;
-            options = options || {};
             instanceStrToEdit = instanceStrToEdit || null;
 
             connection.init();
 
-            form = new Form( formSelector, defaultModelStr, instanceStrToEdit );
+            form = new Form( formSelector, defaultModelStr, instanceStrToEdit, externalData );
 
             // DEBUG
             // window.form = form;
