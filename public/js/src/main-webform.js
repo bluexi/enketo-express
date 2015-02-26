@@ -167,7 +167,11 @@ require( [ 'require-config' ], function( rc ) {
 
                     $( document ).ready( function() {
                         // TODO pass $form as first parameter?
-                        controller.init( 'form.or:eq(0)', formParts.model, _prepareInstance( formParts.model, settings.defaults ), formParts.externalData );
+                        controller.init( 'form.or:eq(0)', {
+                            modelStr: formParts.model,
+                            instanceStr: _prepareInstance( formParts.model, settings.defaults ),
+                            external: formParts.externalData
+                        } );
                         $form.add( $buttons ).removeClass( 'hide' );
                         $( 'head>title' ).text( utils.getTitleFromFormStr( formParts.form ) );
                         if ( console.timeEnd ) console.timeEnd( 'client loading time' );
