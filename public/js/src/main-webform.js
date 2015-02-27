@@ -37,7 +37,6 @@ require( [ 'require-config' ], function( rc ) {
                 console.debug( 'in online mode' );
                 connection.getFormParts( survey )
                     .then( _swapTheme )
-                    .then( _externalData )
                     .then( _init )
                     .then( connection.getMaximumSubmissionSize )
                     .then( function( maxSize ) {
@@ -55,29 +54,6 @@ require( [ 'require-config' ], function( rc ) {
                 } else {
                     gui.alert( error.message, t( 'alert.loaderror.heading' ) );
                 }
-            }
-
-            function _externalData( survey ) {
-                var tasks = [],
-                    doc = $.parseXML( survey.model );
-
-                survey.externalData = $( doc ).find( 'instance[id][src]' ).map( function( index, el ) {
-                    return {
-                        id: el.id,
-                        src: $( el ).attr( 'src' )
-                    };
-                } ).get();
-
-                survey.externalData.forEach( function( instance ) {
-                    tasks.push( connection.getDataFile( instance.src ).then( function( data ) {
-                        instance.xmlStr = ( instance.src.indexOf( '.csv' ) === instance.src.length - 4 ) ? utils.csvToXml( data ) : data;
-                        return instance;
-                    } ) );
-                } );
-                return Q.all( tasks )
-                    .then( function() {
-                        return survey;
-                    } );
             }
 
             function _setApplicationCacheEventHandlers() {
@@ -124,6 +100,8 @@ require( [ 'require-config' ], function( rc ) {
 
             function _swapTheme( survey ) {
                 var deferred = Q.defer();
+
+                console.debug( 'swapping theme', survey );
 
                 if ( survey.form && survey.model ) {
                     gui.swapTheme( survey.theme || utils.getThemeFromFormStr( survey.form ) )

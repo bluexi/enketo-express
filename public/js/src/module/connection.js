@@ -18,7 +18,7 @@
  * Deals with communication to the server (in process of being transformed to using Promises)
  */
 
-define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], function( settings, Q, t, FormModel, $ ) {
+define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'utils', 'jquery' ], function( settings, Q, t, FormModel, utils, $ ) {
     "use strict";
     var that = this,
         currentOnlineStatus = null,
@@ -319,7 +319,7 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
 
 
     /**
-     * Obtains HTML Form and XML Model
+     * Obtains HTML Form, XML Model and External Instances
      *
      * @param  {{serverUrl: ?string=, formId: ?string=, formUrl: ?string=, enketoId: ?string=}  options
      * @return { Promise }
@@ -339,7 +339,9 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
             } )
             .done( function( data ) {
                 data.enketoId = props.enketoId;
-                deferred.resolve( data );
+                //deferred.resolve( data );
+                _getExternalData( data )
+                    .then( deferred.resolve );
             } )
             .fail( function( jqXHR, textStatus, errorMsg ) {
                 if ( jqXHR.responseJSON && jqXHR.responseJSON.message && /ENOTFOUND/.test( jqXHR.responseJSON.message ) ) {
@@ -352,6 +354,32 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
 
         return deferred.promise;
     }
+
+    function _getExternalData( survey ) {
+        var tasks = [],
+            doc = $.parseXML( survey.model );
+
+        // TODO catch parse error if XML not valid and return deferred.promise
+
+        survey.externalData = $( doc ).find( 'instance[id][src]' ).map( function( index, el ) {
+            return {
+                id: el.id,
+                src: $( el ).attr( 'src' )
+            };
+        } ).get();
+
+        survey.externalData.forEach( function( instance ) {
+            tasks.push( _getDataFile( instance.src ).then( function( data ) {
+                instance.xmlStr = ( instance.src.indexOf( '.csv' ) === instance.src.length - 4 ) ? utils.csvToXml( data ) : data;
+                return instance;
+            } ) );
+        } );
+        return Q.all( tasks )
+            .then( function() {
+                return survey;
+            } );
+    }
+
 
     /**
      * Obtains a media file
@@ -385,7 +413,7 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
      *
      * @return {Promise} [description]
      */
-    function getDataFile( url ) {
+    function _getDataFile( url ) {
         var deferred = Q.defer();
 
         $.get( url )
@@ -428,7 +456,6 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
 
         return deferred.promise;
     }
-
 
     function getFormPartsHash( props ) {
         var error,
@@ -484,7 +511,6 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'jquery' ], func
         getFormParts: getFormParts,
         getFormPartsHash: getFormPartsHash,
         getMediaFile: getMediaFile,
-        getDataFile: getDataFile,
         getExistingInstance: getExistingInstance,
         getManifestVersion: getManifestVersion
     };
