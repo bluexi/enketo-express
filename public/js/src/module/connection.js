@@ -341,7 +341,8 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'utils', 'jquery
                 data.enketoId = props.enketoId;
                 //deferred.resolve( data );
                 _getExternalData( data )
-                    .then( deferred.resolve );
+                    .then( deferred.resolve )
+                    .catch( deferred.reject );
             } )
             .fail( function( jqXHR, textStatus, errorMsg ) {
                 if ( jqXHR.responseJSON && jqXHR.responseJSON.message && /ENOTFOUND/.test( jqXHR.responseJSON.message ) ) {
@@ -356,24 +357,32 @@ define( [ 'settings', 'q', 'translator', 'enketo-js/FormModel', 'utils', 'jquery
     }
 
     function _getExternalData( survey ) {
-        var tasks = [],
+        var doc, deferred,
+            tasks = [];
+
+        try {
             doc = $.parseXML( survey.model );
 
-        // TODO catch parse error if XML not valid and return deferred.promise
+            survey.externalData = $( doc ).find( 'instance[id][src]' ).map( function( index, el ) {
+                return {
+                    id: el.id,
+                    src: $( el ).attr( 'src' )
+                };
+            } ).get();
 
-        survey.externalData = $( doc ).find( 'instance[id][src]' ).map( function( index, el ) {
-            return {
-                id: el.id,
-                src: $( el ).attr( 'src' )
-            };
-        } ).get();
+            survey.externalData.forEach( function( instance ) {
+                tasks.push( _getDataFile( instance.src ).then( function( data ) {
+                    // if CSV file, transform to XML
+                    instance.xmlStr = ( instance.src.indexOf( '.csv' ) === instance.src.length - 4 ) ? utils.csvToXml( data ) : data;
+                    return instance;
+                } ) );
+            } );
+        } catch ( e ) {
+            deferred = Q.defer();
+            deferred.reject( e );
+            return deferred.promise;
+        }
 
-        survey.externalData.forEach( function( instance ) {
-            tasks.push( _getDataFile( instance.src ).then( function( data ) {
-                instance.xmlStr = ( instance.src.indexOf( '.csv' ) === instance.src.length - 4 ) ? utils.csvToXml( data ) : data;
-                return instance;
-            } ) );
-        } );
         return Q.all( tasks )
             .then( function() {
                 return survey;
