@@ -70,7 +70,7 @@ require( [ 'require-config' ], function( rc ) {
 
                 survey.externalData.forEach( function( instance ) {
                     tasks.push( connection.getDataFile( instance.src ).then( function( data ) {
-                        instance.xmlStr = data;
+                        instance.xmlStr = ( instance.src.indexOf( '.csv' ) === instance.src.length - 4 ) ? utils.csvToXml( data ) : data;
                         return instance;
                     } ) );
                 } );
