@@ -91,9 +91,14 @@ define( [ 'papaparse', 'q' ], function( Papa, Q ) {
             rows = result.data,
             headers = rows.shift();
 
-        if ( result.errors.length > 0 ) {
+        if ( result.errors.length ) {
             throw result.errors[ 0 ];
         }
+
+        // trim the headers
+        headers = headers.map( function( header ) {
+            return header.trim();
+        } );
 
         // check if headers are valid XML node names
         headers.every( _throwInvalidXmlNodeName );
@@ -102,7 +107,7 @@ define( [ 'papaparse', 'q' ], function( Papa, Q ) {
         xmlStr = '<root>' +
             rows.map( function( row ) {
                 return '<item>' + row.map( function( value, index ) {
-                    return '<{n}>{v}</{n}>'.replace( /{n}/g, headers[ index ] ).replace( /{v}/g, value );
+                    return '<{n}>{v}</{n}>'.replace( /{n}/g, headers[ index ] ).replace( /{v}/g, value.trim() );
                 } ).join( '' ) + '</item>';
             } ).join( '' ) +
             '</root>';
@@ -116,7 +121,7 @@ define( [ 'papaparse', 'q' ], function( Papa, Q ) {
         if ( /^(?!xml)[A-Za-z._][A-Za-z0-9._]*$/.test( name ) ) {
             return true;
         } else {
-            throw new Error( 'CSV column heading ' + name + ' cannot be turned into a valid XML element' );
+            throw new Error( 'CSV column heading "' + name + '" cannot be turned into a valid XML element' );
         }
     }
 
